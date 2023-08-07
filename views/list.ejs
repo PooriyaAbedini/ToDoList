@@ -1,0 +1,73 @@
+<%- include("header") -%>
+<style>
+
+body {
+        background-image: -webkit-linear-gradient(65deg, #E4E9FD 50%, #E4E9FD 50%);
+        min-height: 1000px;
+    }
+</style>
+
+    <a role='button' name='btn_login' href="/logout" class=' btn-large  black waves-effect waves-light' style="width: 120px;">Logout</a>
+  
+
+<div class="row">
+
+    <div class="col s8 ">
+        <div class="container-box">    
+            <h1> <%= dayName %> </h1>
+            <p> <%= work %> </p>
+            <br>
+            <br>
+    
+            <div style="text-align: center;">  
+                <form  class="item"  action="/todo" method="POST">     
+                    <div class="row "> 
+                        <div class="input-field col s12 ">
+                            <input  id = "input" type="text" name="toDo" placeholder="Enter what shoold be done" autocomplete="off">   
+                        </div>   
+                    </div>  
+                    <div class="row">
+                        <div class="col s6" style="text-align: right; padding: 3%;">
+
+                            <button class="Submit-button btn-large btn-floating black waves-effect waves-light lighten-2 " value="<%= feild %>" type="submit" name="button">+</button>
+                        </div>
+                </form>
+                <div class = "col s6" style="text-align: left; padding: 3%;">
+                
+                    <form class="item" action="/NewList" method="POST">
+                        <button class="erase-button btn-large btn-floating black waves-effect waves-light left lighten-2"  type="submit" name="erase">C</button>
+                        <input type="hidden" name="listName" value="<%= feild %>">
+                    </form>           
+                </div>    
+            </div>    
+        </div>
+    </div>
+</div>
+
+    
+    <div class="col s4 " style="padding: 11.250;" >
+        <div class="container-box list-container row" style="z-index: 0;">
+            <h4>List for <%= feild %></h4>
+            <div class="col s12 list-items" style="text-align: center; z-index: 0;">    
+                <% newItems.forEach((item)=>{ %>
+                    <div>    
+                        <form class="list" action="/delete" method="post" >
+                            <label>
+                                <input type="checkbox" name="checkbox" value="<%= item.item %>" onChange="this.form.submit()">
+                                <span id="list-items"><%= item.item %></span>
+                            </label>
+                            <input type="hidden" name="listName" value="<%= feild %>">
+                        </form>
+                    </div>
+                <% }) %>
+            </div>  
+        </div>
+    </div>
+
+</div>
+<%- include("footer") -%>
+    
+ 
+
+
+
