@@ -2,9 +2,7 @@ const express = require('express');
 const bodyParser = require('body-parser');
 const mongoose = require('mongoose');
 const ejs = require('ejs');
-const {
-    link
-} = require('fs');
+const { link } = require('fs');
 const date = require(__dirname + "/date.js");
 const app = express();
 const passport = require('passport');
@@ -12,13 +10,20 @@ const passportLocalMongoose = require('passport-local-mongoose');
 const session = require('express-session');
 const LocalStrategy = require('passport-local').Strategy;
 
+
+//bcrypt:
+const bcrypt = require('bcrypt');
+const saltRounds = 10;
+
+
+
 //Connecting mongoose to atlas
 mongoose.connect('mongodb://127.0.0.1:27017/toDoListDB')
 
 
 
 app.use(session({
-    secret: "My beautiful secret",
+    secret: "My secret",
     resave: false,
     saveUninitialized: false,
     cookie: {
@@ -88,54 +93,120 @@ app.get('/', (req, res) => {
 
 });
 
-
+var signupErrs = [];
 app.route('/signup')
     .get((req, res) => {
-        res.render('signup')
+    
+
+         res.render('signup',{errors: signupErrs});
+
+        setTimeout(()=>{
+            signupErrs = [];
+        },200)
+        
     })
     .post((req, res) => {
+        
         const email = req.body.username;
         const password = req.body.password;
 
-        User.register({
-            username: email
-        }, password, (err, user) => {
-            if (err) {
-                console.log('Something went wrong: ' + err)
-                res.redirect('/signup');
-            } else {
-                passport.authenticate('local')(req, res, () => {
-                    res.redirect('/todo');
-                })
+        async()=>{
+
+            const userExists = await User.findOne({'password': email});
+            if (userExists){
+
+                signupErrs.push("A user with this e-mail address is already registered!");
+                console.log("A user with this e-mail address is already registered!");
             }
-        })
+
+        }
+        
+        
+        if (password.length < 6){
+
+            signupErrs.push("Please enter a password with at least 6 characters!");
+            console.log("Please enter a password with at least 6 characters!");
+            
+
+        }
+        // Registeration using Passport: 
+        User.register({username: email}, password, (err, user) => {
+            if (err) {
+                signupErrs.push("There is a user registered with this E-mail address!");
+                console.log('Something went wrong with registration: ' + err);
+                
+            } else {
+
+                async()=>{
+
+                    try{
+
+                        passport.authenticate('local')(req, res, () => {
+                            res.redirect('/todo');
+                        });
+
+                    }catch(err){
+
+                        signupErrs.push("Something went wrong with authentication, please try later!");
+                        console.log('Something went wrong with authentication: ' + err);
+                        res.redirect('/signup');
+                    
+                    }
+                }  
+            };
+        });
+        if (signupErrs.length > 0){
+            res.redirect('/signup');
+        }
     });
 
 
-
+var errors = [];
 app.route('/login')
     .get((req, res) => {
-        res.render('login', {
-            err: ""
-        })
+        res.render('login',{errors: errors});
+
+        setTimeout(()=>{
+
+            errors = [];
+
+        },200);
+
     })
-    .post((req, res) => {
+    .post((req, res, next) => {
+
         const user = new User({
             username: req.body.username,
             password: req.body.password
-        })
+        });
 
-        req.login(user, (err) => {
-            if (err) {
-                console.log("Something went wrong: " + err)
-            } else {
+         // login using passport authentication:
+        passport.authenticate('local', function(err, user, info) {
+            if (err) { 
 
-                passport.authenticate('local')(req, res, () => {
+                console.log("Something went wrong with login authentication.");
+                errors.push("Something went wrong, Try again");
 
-                    res.redirect('/todo');
-                })
+                return next(err); 
             }
-        })
+            if (!user) { 
+                
+                console.log("Wrong Username or Password!");
+                errors.push("Wrong Username or Password!");    
+                return res.redirect('/login'); 
+            }
+            req.logIn(user, function(err) {
+
+              if (err) {
+                 
+                return next(err); 
+            }
+              return res.redirect('/todo');
+            });
+          })(req, res, next);
+
+       
+     
     });
 
 app.get('/logout', (req, res) => {
@@ -185,9 +256,11 @@ app.route('/todo')
                 });
             })
 
-        } else {
+        } else{
 
-            res.redirect('/login')
+            errors.push("Wrong password or e-mail address");
+            console.log("Wrong password or e-mail address");
+            res.redirect('/login');
 
         };
 
